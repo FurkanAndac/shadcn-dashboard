@@ -1,8 +1,17 @@
+"use client"
+
 import BarChart from "@/components/BarChart";
 import PageTitle from "@/components/PageTitle";
 import Card, { CardContent, CardProps } from "@/components/card";
 import { Activity, CreditCard, DollarSign, Users } from "lucide-react";
 import SalesCard, { SalesProps } from "@/components/SalesCard";
+import Script from "next/script";
+import React, { useState } from "react";
+import { loadConnectAndInitialize } from "@stripe/connect-js/pure";
+import {
+  ConnectPayments,
+  ConnectComponentsProvider,
+} from "@stripe/react-connect-js";
 
 const cardData: CardProps[] = [
   {
@@ -60,6 +69,34 @@ const userSalesData: SalesProps[] = [
 ];
 
 export default function Home() {
+  const [stripeConnectInstance] = useState(() => {
+    const fetchClientSecret = async () => {
+      // Fetch the AccountSession client secret
+      const response = await fetch('/api/account_session', {
+          method: 'POST'
+        });
+      if (!response.ok) {
+        // Handle errors on the client side here
+        const {error} = await response.json();
+        console.log('An error occurred: ', error);
+        return undefined;
+      } else {
+        const {client_secret: clientSecret} = await response.json();
+        return clientSecret;
+      }
+    }
+    return loadConnectAndInitialize({
+        // This is your test publishable API key.
+        publishableKey: "pk_test_51PtT1MKq69fGMfJFG2zqPENrUeeUXU2hmL24H2XoB6H3xUnGK2fqHrKattK11ODSVK0CeYUrovP4VrFoEtVb9VVU00QFWWeMZz",
+        fetchClientSecret: fetchClientSecret,
+        appearance: {
+          overlays: 'dialog',
+          variables: {
+            colorPrimary: '#625afa',
+          },
+        },
+      })
+    });
   return (
     <div className="flex flex-col gap-5 w-full">
       <PageTitle title="Dashboard"/>
@@ -97,6 +134,12 @@ export default function Home() {
           ))}
         </CardContent>
       </section>
+      <div className="container">
+          <ConnectComponentsProvider connectInstance={stripeConnectInstance}>
+            <ConnectPayments />
+          </ConnectComponentsProvider>
+      </div>
     </div>
+    
   )
 }
